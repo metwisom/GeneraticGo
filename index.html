@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <style>
+        body {
+            overflow: hidden;
+            margin: 0;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Game</title>
+</head>
+
+<body>
+    <canvas width='100%' height='100%' id='b'></canvas>
+</body>
+
+
+</html>
+<script>
+    'use strict';
+    var gx = 0;
+    var gy = 0;
+    var is_drag = false;
+    var lx = 0;
+    var ly = 0;
+
+    var zoom = 1;
+    var potential_zoom = 1;
+    var current_zoom = 1;
+
+    document.addEventListener('wheel', (e) => {
+        console.log(e)
+        current_zoom -= e.wheelDelta / 120;
+        potential_zoom = 1 / (current_zoom > 0 ? current_zoom : 1 / -(current_zoom - 1))
+    })
+
+    document.addEventListener('mousedown', (e) => {
+        is_drag = true;
+        lx = e.clientX;
+        ly = e.clientY;
+    })
+
+    document.addEventListener('mouseup', (e) => {
+        is_drag = false
+    })
+
+    document.addEventListener('mousemove', (e) => {
+        if (is_drag) {
+            gx -= (lx - e.clientX) / zoom
+            gy -= (ly - e.clientY) / zoom
+            lx = e.clientX;
+            ly = e.clientY;
+        }
+    })
+
+    var requestAnimFrame = (function () {
+        return window.requestAnimationFrame ||
+            window.webkitRequestAnimationFrame ||
+            window.mozRequestAnimationFrame ||
+            window.oRequestAnimationFrame ||
+            window.msRequestAnimationFrame ||
+            function (callback) {
+                window.setTimeout(callback, 1000 / 60);
+            };
+    })();
+
+    var canvas = document.getElementById("b");
+    canvas.width = document.body.clientWidth
+    canvas.height = document.body.clientHeight
+    var context = canvas.getContext("2d");
+    context.font = "12px serif";
+    var map = [];
+    var bots = [];
+
+    var gfps = 0, fps = 0;
+
+    setInterval(() => { gfps = fps; fps = 0; }, 1000)
+
+    function draw() {
+        context.setTransform(1, 0, 0, 1, 0, 0);
+        if (zoom != potential_zoom && Math.abs(zoom - potential_zoom) < 0.01) {
+            zoom = potential_zoom;
+        }
+        if (zoom != potential_zoom) {
+            zoom += (potential_zoom - zoom) / 10;
+        }
+        context.fillStyle = '#999';
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.fillStyle = '#9f9';
+        context.translate(canvas.width / 2, canvas.height / 2)
+        context.scale(zoom, zoom)
+        context.translate(-canvas.width / 2, -canvas.height / 2)
+        context.translate(gx, gy)
+        if (map[0] == undefined) {
+            requestAnimFrame(draw, canvas);
+            return;
+        }
+        for (let i in map) {
+            let item = map[i]
+            if(item[2] == 0){
+                continue;
+            }
+            let x = item[0];
+            let y = item[1];
+            switch (item[2]) {
+                case 1:
+                    context.fillStyle = '#0f0';
+                    break;
+                case 2:
+                    context.fillStyle = '#5f5';
+                    break;
+                case 3:
+                    context.fillStyle = '#9f9';
+                    break;
+                case 4:
+                    context.fillStyle = '#bfb';
+                    break;
+                default:
+                    context.fillStyle = '#f00';
+                    break;
+            }
+            context.fillRect(x * 5, y * 5, 5, 5);
+        }
+        context.fillStyle = '#000';
+        bots.forEach(bot => {
+            context.beginPath();
+            context.ellipse(bot[0] * 5 + 2.5, bot[1] * 5 + 2.5, 2.5, 2.5, 0, 0, 2 * Math.PI);
+            context.fillText(bot[2], bot[0] * 5 + 2.5, bot[1] * 5 + 2.5);
+            context.fill();
+        });
+        context.setTransform(1, 0, 0, 1, 0, 0);
+        context.fillText(gfps, 10, 10);
+        fps++;
+        requestAnimFrame(draw, canvas);
+    }
+
+    requestAnimFrame(draw, canvas)
+    connect()
+function connect(){
+    var socket = new WebSocket("ws://78.24.217.208:8765");
+    socket.onclose = (event) => setTimeout(() => connect(),100);
+    socket.onmessage = function (event) {
+        let data = JSON.parse(event.data);
+        if (data.type == 'map') {
+            map = data.data || [];
+            socket.send('map');
+        }
+        if (data.type == 'bot') {
+            bots = data.data || [];
+            socket.send('bot');
+        }
+    };
+    socket.onopen = () => {
+        socket.send('map');
+        socket.send('bot');
+        console.log("Соединение установлено.")
+    };
+    socket.onerror = (error) => console.log("Ошибка " + error.message);;
+}
+   
+
+</script>
