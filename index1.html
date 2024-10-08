@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Вращающийся куб на Canvas</title>
+</head>
+<body>
+<script>
+    var canvas = document.createElement('canvas');
+    canvas.width = 400;
+    canvas.height = 400;
+    document.body.appendChild(canvas);
+
+    // создаем контекст для рисования
+    var ctx = canvas.getContext('2d');
+
+    // загружаем текстуру
+    var texture = new Image();
+    texture.src = 'file:///C:/Users/metwi/Projects/repos/GeneraticGo/texture.jpg';
+    texture.onload = function () {
+        // создаем куб
+
+        // угол поворота куба
+
+        // начинаем анимацию
+        ctx.translate(200, 200)
+
+        function draw() {
+            // очищаем экран
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // массив координат вершин куба
+            var cube = [
+                [-50, -50, -50],
+                [-50, 50, -50],
+                [50, 50, -50],
+                [50, -50, -50],
+                [-50, -50, 50],
+                [-50, 50, 50],
+                [50, 50, 50],
+                [50, -50, 50]
+            ];
+
+            // массив соединений вершин куба
+            var edges = [
+                [0, 1],
+                [1, 2],
+                [2, 3],
+                [3, 0],
+                [4, 5],
+                [5, 6],
+                [6, 7],
+                [7, 4],
+                [0, 4],
+                [1, 5],
+                [2, 6],
+                [3, 7]
+            ];
+
+            // угол поворота куба вокруг оси X
+            var angleX = 0.01;
+            // угол поворота куба вокруг оси Y
+            var angleY = 0.01;
+
+            // матрица поворота вокруг оси X
+            var rotationX = [
+                [1, 0, 0],
+                [0, Math.cos(angleX), -Math.sin(angleX)],
+                [0, Math.sin(angleX), Math.cos(angleX)]
+            ];
+
+            // матрица поворота вокруг оси Y
+            var rotationY = [
+                [Math.cos(angleY), 0, Math.sin(angleY)],
+                [0, 1, 0],
+                [-Math.sin(angleY), 0, Math.cos(angleY)]
+            ];
+
+            // матрица проекции
+            var projection = [
+                [1, 0, 0],
+                [0, 1, 0],
+                [0, 0, 1]
+            ];
+
+            // матрица преобразования вершин куба
+            var transformedCube = [];
+
+            // применяем матрицы поворота к вершинам куба
+            for (var i = 0; i < cube.length; i++) {
+                var rotatedVertex = multiplyMatrix(rotationX, cube[i]);
+                rotatedVertex = multiplyMatrix(rotationY, rotatedVertex);
+                transformedCube.push(rotatedVertex);
+            }
+
+            // применяем матрицу проекции к вершинам куба
+            var projectedCube = [];
+            for (var i = 0; i < transformedCube.length; i++) {
+                var projectedVertex = multiplyMatrix(projection, transformedCube[i]);
+                projectedCube.push(projectedVertex);
+            }
+
+            // соединяем вершины куба линиями
+            for (var i = 0; i < edges.length; i++) {
+                var p1 = projectedCube[edges[i][0]];
+                var p2 = projectedCube[edges[i][1]];
+                ctx.beginPath();
+                ctx.moveTo(p1[0], p1[1]);
+                ctx.lineTo(p2[0], p2[1]);
+                ctx.stroke();
+            }
+
+            // создаем шаблон для текстуры
+            var texturePattern = ctx.createPattern(texture, 'repeat');
+
+// применяем текстуру к граням куба
+            ctx.fillStyle = texturePattern;
+            ctx.beginPath();
+            ctx.moveTo(projectedCube[0][0], projectedCube[0][1]);
+            ctx.lineTo(projectedCube[1][0], projectedCube[1][1]);
+            ctx.lineTo(projectedCube[2][0], projectedCube[2][1]);
+            ctx.lineTo(projectedCube[3][0], projectedCube[3][1]);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.moveTo(projectedCube[4][0], projectedCube[4][1]);
+            ctx.lineTo(projectedCube[5][0], projectedCube[5][1]);
+            ctx.lineTo(projectedCube[6][0], projectedCube[6][1]);
+            ctx.lineTo(projectedCube[7][0], projectedCube[7][1]);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.moveTo(projectedCube[0][0], projectedCube[0][1]);
+            ctx.lineTo(projectedCube[4][0], projectedCube[4][1]);
+            ctx.lineTo(projectedCube[7][0], projectedCube[7][1]);
+            ctx.lineTo(projectedCube[3][0], projectedCube[3][1]);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.moveTo(projectedCube[1][0], projectedCube[1][1]);
+            ctx.lineTo(projectedCube[5][0], projectedCube[5][1]);
+            ctx.lineTo(projectedCube[6][0], projectedCube[6][1]);
+            ctx.lineTo(projectedCube[2][0], projectedCube[2][1]);
+            ctx.closePath();
+            ctx.fill();
+
+// повторяем анимацию
+            requestAnimationFrame(draw);
+        }
+
+// функция умножения матрицы на вектор
+        function multiplyMatrix(matrix, vector) {
+            var result = [0, 0, 0];
+            for (var i = 0; i < 3; i++) {
+                for (var j = 0; j < 3; j++) {
+                    result[i] += matrix[i][j] * vector[j];
+                }
+            }
+            return result;
+        }
+
+// запускаем анимацию
+        requestAnimationFrame(draw);
+
+// функция для поворота точки вокруг оси X
+        function rotateX(vertex, angle) {
+            var sin = Math.sin(angle);
+            var cos = Math.cos(angle);
+            var y = vertex[1] * cos - vertex[2] * sin;
+            var z = vertex[2] * cos + vertex[1] * sin;
+            return [vertex[0], y, z];
+        }
+
+// функция для поворота точки вокруг оси Y
+        function rotateY(vertex, angle) {
+            var sin = Math.sin(angle);
+            var cos = Math.cos(angle);
+            var x = vertex[0] * cos - vertex[2] * sin;
+            var z = vertex[2] * cos + vertex[0] * sin;
+            return [x, vertex[1], z];
+        }
+
+// создаем шаблон для текстуры
+        var pattern = ctx.createPattern(texture, 'repeat');
+
+    };
+</script>
+</body>
+</html>

@@ -102,7 +102,7 @@
         context.scale(zoom, zoom)
         context.translate(-canvas.width / 2, -canvas.height / 2)
         context.translate(gx, gy)
-        if (map[0] == undefined) {
+        if (bots[0] == undefined) {
             requestAnimFrame(draw, canvas);
             return;
         }
@@ -148,7 +148,8 @@
     requestAnimFrame(draw, canvas)
     connect()
 function connect(){
-    var socket = new WebSocket("ws://78.24.217.208:8765");
+    // var socket = new WebSocket("ws://78.24.217.208:8765");
+    var socket = new WebSocket("ws://localhost:8765");
     socket.onclose = (event) => setTimeout(() => connect(),100);
     socket.onmessage = function (event) {
         let data = JSON.parse(event.data);

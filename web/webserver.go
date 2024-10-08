@@ -1,16 +1,17 @@
-package main
+package web
 
 import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"main/models"
 	"net/http"
 	"time"
 
 	"github.com/gorilla/websocket"
 )
 
-func startServ() {
+func StartServ() {
 	http.HandleFunc("/", webs)
 
 	err := http.ListenAndServe(":8765", nil)
@@ -68,30 +69,10 @@ func sendMap(conn *websocket.Conn) error {
 	var respBot Line
 	respBot.Type = "map"
 
-	for _, v := range MainWorld.GetAllMap() {
-
-		if v.typo == "e" {
-
-			if v.Value == 1 {
-				slice2 := []interface{}{v.pos.X, v.pos.Y, 1}
-				respBot.Data = append(respBot.Data, slice2)
-			}
-			if v.Value == 2 {
-				slice2 := []interface{}{v.pos.X, v.pos.Y, 2}
-				respBot.Data = append(respBot.Data, slice2)
-			}
-			if v.Value == 3 {
-				slice2 := []interface{}{v.pos.X, v.pos.Y, 3}
-				respBot.Data = append(respBot.Data, slice2)
-			}
-			if v.Value == 4 {
-				slice2 := []interface{}{v.pos.X, v.pos.Y, 4}
-				respBot.Data = append(respBot.Data, slice2)
-			}
-		} else {
-			slice2 := []interface{}{v.pos.X, v.pos.Y, 5}
-			respBot.Data = append(respBot.Data, slice2)
-		}
+	//fmt.Println(MainWorld.GetAllMap())
+	for _, v := range models.MainEats.Get() {
+		slice2 := []interface{}{v.Pos.X, v.Pos.Y, 1}
+		respBot.Data = append(respBot.Data, slice2)
 	}
 
 	jsonStr, err := json.Marshal(respBot)
@@ -111,13 +92,11 @@ func sendBot(conn *websocket.Conn) error {
 	var respMap Line
 	respMap.Type = "bot"
 
-	listMutex.RLock()
-	for _, bot := range MainBots.pList {
-		slice2 := []int{bot.pos.X, bot.pos.Y, bot.Health}
+	for _, bot := range models.MainBots.Get() {
+		slice2 := []int{bot.Pos.X, bot.Pos.Y, bot.Health}
 		respMap.Data = append(respMap.Data, slice2)
 	}
 
-	listMutex.RUnlock()
 	jsonStr, err := json.Marshal(respMap)
 	if err != nil {
 		return err
